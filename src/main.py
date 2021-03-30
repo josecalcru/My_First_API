@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User
+from models import db, User, Favorites
 #from models import Person
 
 app = Flask(__name__)
@@ -38,6 +38,68 @@ def handle_hello():
     }
 
     return jsonify(response_body), 200
+
+@app.route('/fav', methods=['GET'])
+def get_fav():
+
+    # get all the people
+    result = Favorites.query.all()
+
+
+    # map the results and your list of people  inside of the all_people variable
+    all_favorites = list(map(lambda x: x.serialize(), result))
+
+    return jsonify(all_favorites), 200
+
+@app.route('/add_fav', methods=['POST'])
+def add_fav():
+
+    request_body= request.get_json()
+    fav = Favorites(name=request_body["nombre"])
+    db.session.add(fav)
+    db.session.commit()
+
+    return jsonify("El favorito se agregó de manera satisfactoria"), 200
+
+
+@app.route('/upd_fav/<int:favid>', methods=['PUT'])
+def upd_fav(favid):
+
+    
+    fav = Favorites.query.get(favid)
+    if fav is None:
+        raise APIException('Favorito no encontrado', status_code=403)
+
+    request_body= request.get_json()
+
+    if "name" in request_body:
+        fav.name = request_body["name"]
+
+    db.session.commit()
+
+
+
+    return jsonify("El favorito se modificó de manera satisfactoria"), 200
+
+@app.route('/del_fav/<int:favid>', methods=['DELETE'])
+def del_fav(favid):
+
+    
+    fav = Favorites.query.get(favid)
+    if fav is None:
+        raise APIException('Favorito no encontrado', status_code=403)
+
+    request_body= request.get_json()
+
+
+    db.session.delete(fav)
+    db.session.commit()
+
+
+
+    return jsonify("El favorito se eliminó de manera satisfactoria"), 200
+    
+
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
